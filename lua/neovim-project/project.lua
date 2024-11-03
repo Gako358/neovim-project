@@ -270,11 +270,37 @@ M.create_commands = function()
 end
 
 M.switch_project = function(dir)
-  if M.in_session() then
-    M.switch_after_save_session(dir)
-  else
-    M.load_session(dir)
+  if not dir then return end
+
+  -- Update the working directory
+  if path.cwd() ~= dir then
+    path.dir_pretty = path.short_path(dir)
+    vim.api.nvim_set_current_dir(dir)
+    print("Switching to project: " .. dir)
   end
+
+  -- Ensure direnv reload is run from the updated directory
+  local current_dir = path.cwd()
+  print("Running direnv reload from: " .. current_dir)
+
+  -- Reload environment variables using direnv
+  vim.loop.spawn("direnv", {
+    args = {"reload"},
+    cwd = current_dir,
+  }, function(code, signal)
+    if code == 0 then
+      print("direnv reload successful")
+
+      -- Start or attach the language server after reloading environment variables
+      if M.in_session() then
+        M.switch_after_save_session(dir)
+      else
+        M.load_session(dir)
+      end
+    else
+      print("direnv reload failed with code " .. code .. " and signal " .. signal)
+    end
+  end)
 end
 
 M.init = function()
