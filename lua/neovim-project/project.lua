@@ -270,6 +270,20 @@ M.create_commands = function()
 end
 
 M.switch_project = function(dir)
+  if not dir then return end
+
+  -- Update the working directory
+  if path.cwd() ~= dir then
+    path.dir_pretty = path.short_path(dir)
+    vim.api.nvim_set_current_dir(dir)
+
+    -- Check if .envrc file exists and reload direnv
+    local envrc_path = dir .. "/.envrc"
+    if vim.fn.filereadable(envrc_path) == 1 then
+      vim.fn.system("direnv reload")
+    end
+  end
+
   if M.in_session() then
     M.switch_after_save_session(dir)
   else
